@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { LocationPoint } from "../data/locations";
 import type { SiteConfig } from "../data/site-config";
 import type { StudentRecord } from "../domain/student-data";
+import { getYearColor } from "../domain/year-color";
 import { TaoliExperience } from "./TaoliExperience";
 
 const students: StudentRecord[] = [
@@ -52,6 +53,7 @@ describe("TaoliExperience", () => {
     );
 
     expect(screen.getByRole("heading", { name: "桃李满天下" })).toBeInTheDocument();
+    expect(document.querySelector<HTMLElement>(".experience")?.style.getPropertyValue("--year-color")).toBe(getYearColor(2003));
     fireEvent.click(screen.getByRole("button", { name: "开始桃李之旅" }));
 
     expect(screen.getByText("2003届")).toBeInTheDocument();

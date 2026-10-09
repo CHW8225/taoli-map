@@ -10,14 +10,15 @@ describe("maintained student dataset", () => {
   const csv = fs.readFileSync(path.join(process.cwd(), "src/data/students.csv"), "utf8");
   const students = normalizeStudents(parseStudentCsv(csv));
 
-  it("contains the 80 supplied people and excludes only the missing-year record from scenes", () => {
+  it("contains all 80 supplied people in the year scenes", () => {
     expect(students).toHaveLength(80);
-    expect(buildYearScenes(students).flatMap((scene) => [...scene.domesticStudents, ...scene.overseasStudents])).toHaveLength(79);
+    expect(buildYearScenes(students).flatMap((scene) => [...scene.domesticStudents, ...scene.overseasStudents])).toHaveLength(80);
   });
 
   it("keeps the confirmed correction and the three overseas records", () => {
     expect(students.filter((item) => item.name === "成宇峰")).toMatchObject([{ graduationYear: 2008 }]);
     expect(students.filter((item) => item.name === "岳泰新")).toMatchObject([{ graduationYear: 2016 }]);
+    expect(students.filter((item) => item.name === "陈永")).toMatchObject([{ graduationYear: 2025 }]);
     expect(students.filter((item) => item.locationType === "overseas").map((item) => item.name).sort()).toEqual([
       "刘蓝",
       "宋长征",
@@ -25,10 +26,8 @@ describe("maintained student dataset", () => {
     ]);
   });
 
-  it("reports only Chen Yong's missing year", () => {
-    expect(validateStudents(students)).toEqual([
-      { id: "s012", code: "missing-year", message: "陈永缺少毕业年份" }
-    ]);
+  it("passes maintained-data validation", () => {
+    expect(validateStudents(students)).toEqual([]);
   });
 
   it("has a reviewed point for every domestic destination", () => {

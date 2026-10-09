@@ -1,10 +1,11 @@
 "use client";
 
 import AMapLoader from "@amap/amap-jsapi-loader";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { ORIGIN, type LocationPoint } from "../data/locations";
 import { groupStudentsByLocation, type StudentRecord } from "../domain/student-data";
+import { getYearColor, withAlpha } from "../domain/year-color";
 
 declare global {
   interface Window {
@@ -42,10 +43,11 @@ function createOriginMarkerElement() {
   return marker;
 }
 
-function createDestinationMarkerElement(count: number) {
+function createDestinationMarkerElement(count: number, color: string) {
   const marker = document.createElement("button");
   marker.type = "button";
   marker.className = "destination-marker";
+  marker.style.setProperty("--marker-color", color);
   marker.setAttribute("aria-label", `查看该地点的${count}名学生`);
 
   const core = document.createElement("i");
@@ -83,7 +85,12 @@ function destinationFeatures(students: StudentRecord[], locations: Record<string
     return [
       {
         type: "Feature",
-        properties: { id: student.id, name: student.name, location: destination.displayName },
+        properties: {
+          id: student.id,
+          name: student.name,
+          location: destination.displayName,
+          color: getYearColor(student.graduationYear ?? 2000)
+        },
         geometry: { type: "LineString", coordinates: [ORIGIN.coordinates, destination.coordinates] }
       }
     ];
@@ -91,16 +98,24 @@ function destinationFeatures(students: StudentRecord[], locations: Record<string
 }
 
 function pointFeatures(students: StudentRecord[], locations: Record<string, LocationPoint>) {
-  const counts = new Map<string, number>();
+  const points = new Map<string, { count: number; year: number }>();
   students.forEach((student) => {
     if (student.locationKey && student.locationKey !== ORIGIN.key) {
-      counts.set(student.locationKey, (counts.get(student.locationKey) ?? 0) + 1);
+      const current = points.get(student.locationKey);
+      points.set(student.locationKey, {
+        count: (current?.count ?? 0) + 1,
+        year: student.graduationYear ?? current?.year ?? 2000
+      });
     }
   });
-  return [...counts.entries()].flatMap(([key, count]) => {
+  return [...points.entries()].flatMap(([key, point]) => {
     const location = locations[key];
     return location
-      ? [{ type: "Feature", properties: { key, count }, geometry: { type: "Point", coordinates: location.coordinates } }]
+      ? [{
+          type: "Feature",
+          properties: { key, count: point.count, color: getYearColor(point.year) },
+          geometry: { type: "Point", coordinates: location.coordinates }
+        }]
       : [];
   });
 }
@@ -137,9 +152,10 @@ function FallbackMap({
         {domestic.map((student, index) => {
           const point = toPoint(locations[student.locationKey!].coordinates);
           const active = student.id === activeStudent?.id;
+          const color = getYearColor(student.graduationYear ?? 2000);
           const lift = 70 + (index % 4) * 14;
           return (
-            <g key={student.id} className={active ? "route active" : "route"}>
+            <g key={student.id} className={active ? "route active" : "route"} style={{ "--route-color": color } as CSSProperties}>
               <path
                 d={`M ${origin.x} ${origin.y} Q ${(origin.x + point.x) / 2} ${Math.min(origin.y, point.y) - lift} ${point.x} ${point.y}`}
               />
@@ -254,10 +270,13 @@ export function MapStage({ amapKey, locations, visibleStudents, activeStudent, f
       smoothSteps: 40,
       speed: finale ? 220000 : 140000,
       flowLength: 90000,
-      lineColors: ["rgba(255,202,106,.95)", "rgba(51,230,255,.92)", "rgba(45,93,255,.7)"],
+      lineColors: (_index: number, feature: any) => {
+        const color = feature.properties.color;
+        return [withAlpha(color, 0.35), color, withAlpha(color, 0.72)];
+      },
       maxHeightScale: 0.28,
-      headColor: "rgba(255,255,255,1)",
-      trailColor: "rgba(51,230,255,0)"
+      headColor: (_index: number, feature: any) => feature.properties.color,
+      trailColor: (_index: number, feature: any) => withAlpha(feature.properties.color, 0)
     });
     runtime.pointLayer.setSource(new window.Loca.GeoJSONSource({ data: { type: "FeatureCollection", features: points } }));
     runtime.pointLayer.setStyle({
@@ -267,8 +286,8 @@ export function MapStage({ amapKey, locations, visibleStudents, activeStudent, f
         return [size, size];
       },
       borderWidth: 3,
-      color: "rgba(51,230,255,.35)",
-      borderColor: "rgba(133,244,255,1)",
+      color: (_index: number, feature: any) => withAlpha(feature.properties.color, 0.28),
+      borderColor: (_index: number, feature: any) => feature.properties.color,
       duration: 1800,
       animate: true
     });
@@ -283,10 +302,11 @@ export function MapStage({ amapKey, locations, visibleStudents, activeStudent, f
       .filter((group) => group.locationKey !== ORIGIN.key && locations[group.locationKey])
       .forEach((group) => {
         const location = locations[group.locationKey];
+        const markerColor = getYearColor(group.students.at(-1)?.graduationYear ?? 2000);
         const marker = new runtime.AMap.Marker({
           position: location.coordinates,
           anchor: "center",
-          content: createDestinationMarkerElement(group.students.length),
+          content: createDestinationMarkerElement(group.students.length, markerColor),
           zIndex: 260
         });
         const openPopup = () => {

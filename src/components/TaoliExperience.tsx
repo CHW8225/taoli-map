@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useState, type CSSProperties } from "react";
 
 import type { LocationPoint } from "../data/locations";
 import type { SiteConfig } from "../data/site-config";
 import { buildYearScenes, type StudentRecord } from "../domain/student-data";
 import { createInitialPlayback, getSceneStudents, playbackReducer } from "../domain/timeline";
+import { getYearColor } from "../domain/year-color";
 import { MapStage } from "./MapStage";
 import { PeoplePanel } from "./PeoplePanel";
 
@@ -23,6 +24,7 @@ export function TaoliExperience({ students, locations, config, amapKey, ceremony
   const [entered, setEntered] = useState(false);
   const [speed, setSpeed] = useState<0.75 | 1 | 1.5>(config.ceremonySpeed);
   const currentScene = scenes[playback.sceneIndex] ?? scenes[0];
+  const currentYearColor = currentScene ? getYearColor(currentScene.year) : "#ffc86b";
   const currentSceneStudents = currentScene ? getSceneStudents(currentScene) : [];
   const isStudentActive = playback.status === "studentLaunch"
     || (playback.status === "paused" && playback.resumeStatus === "studentLaunch");
@@ -87,7 +89,10 @@ export function TaoliExperience({ students, locations, config, amapKey, ceremony
   const togglePause = () => dispatch({ type: playback.status === "paused" ? "RESUME" : "PAUSE", scenes });
 
   return (
-    <main className={`experience${ceremonyMode ? " ceremony" : ""}`}>
+    <main
+      className={`experience${ceremonyMode ? " ceremony" : ""}`}
+      style={{ "--year-color": currentYearColor } as CSSProperties}
+    >
       <div className="ambient-grid" aria-hidden="true" />
 
       <header className="topbar">
@@ -154,6 +159,7 @@ export function TaoliExperience({ students, locations, config, amapKey, ceremony
               type="button"
               key={scene.year}
               className={index === playback.sceneIndex ? "active" : index < playback.sceneIndex ? "passed" : ""}
+              style={{ "--item-year-color": getYearColor(scene.year) } as CSSProperties}
               onClick={() => dispatch({ type: "GO_TO_YEAR", scenes, sceneIndex: index })}
               aria-label={`查看${scene.year}届`}
             >
