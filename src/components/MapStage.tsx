@@ -110,7 +110,9 @@ function FallbackMap({
   visibleStudents,
   activeStudent
 }: Pick<MapStageProps, "locations" | "visibleStudents" | "activeStudent">) {
-  const domestic = visibleStudents.filter((student) => student.locationKey && locations[student.locationKey]);
+  const domestic = visibleStudents.filter(
+    (student) => student.locationKey && student.locationKey !== ORIGIN.key && locations[student.locationKey]
+  );
   const toPoint = (coordinates: [number, number]) => ({
     x: ((coordinates[0] - 73) / 62) * 1000,
     y: ((54 - coordinates[1]) / 36) * 600
@@ -168,15 +170,28 @@ export function MapStage({ amapKey, locations, visibleStudents, activeStudent, f
     () => visibleStudents.filter((student) => student.locationType === "domestic"),
     [visibleStudents]
   );
+  const domesticRouteKey = useMemo(
+    () => domesticVisible.map((student) => student.id).join("|"),
+    [domesticVisible]
+  );
 
   useEffect(() => {
     if (!amapKey || !containerRef.current) return;
     let cancelled = false;
+    const loadTimeout = window.setTimeout(() => {
+      if (!cancelled) setMapState("error");
+    }, 8000);
     window._AMapSecurityConfig = { serviceHost: "/_AMapService" };
 
     AMapLoader.load({ key: amapKey, version: "2.0", plugins: [], Loca: { version: "2.0.0" } })
       .then((AMap: any) => {
-        if (cancelled || !containerRef.current || !window.Loca) return;
+        if (cancelled || !containerRef.current) return;
+        if (!window.Loca) {
+          window.clearTimeout(loadTimeout);
+          setMapState("error");
+          return;
+        }
+        window.clearTimeout(loadTimeout);
         const map = new AMap.Map(containerRef.current, {
           center: [104.5, 35.5],
           zoom: 4.25,
@@ -212,11 +227,13 @@ export function MapStage({ amapKey, locations, visibleStudents, activeStudent, f
         setMapState("ready");
       })
       .catch(() => {
+        window.clearTimeout(loadTimeout);
         if (!cancelled) setMapState("error");
       });
 
     return () => {
       cancelled = true;
+      window.clearTimeout(loadTimeout);
       runtimeRef.current?.loca?.destroy?.();
       runtimeRef.current?.map?.destroy?.();
       runtimeRef.current = null;
@@ -281,7 +298,7 @@ export function MapStage({ amapKey, locations, visibleStudents, activeStudent, f
         runtime.markers.push(marker);
       });
     runtime.map.add(runtime.markers.slice(1));
-  }, [domesticVisible, finale, locations, mapState]);
+  }, [domesticRouteKey, finale, locations, mapState]);
 
   if (!amapKey || mapState === "error") {
     return <FallbackMap locations={locations} visibleStudents={domesticVisible} activeStudent={activeStudent} />;

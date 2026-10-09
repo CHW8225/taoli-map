@@ -24,7 +24,9 @@ export function TaoliExperience({ students, locations, config, amapKey, ceremony
   const [speed, setSpeed] = useState<0.75 | 1 | 1.5>(config.ceremonySpeed);
   const currentScene = scenes[playback.sceneIndex] ?? scenes[0];
   const currentSceneStudents = currentScene ? getSceneStudents(currentScene) : [];
-  const currentStudent = playback.status === "studentLaunch" ? currentSceneStudents[playback.studentIndex] ?? null : null;
+  const isStudentActive = playback.status === "studentLaunch"
+    || (playback.status === "paused" && playback.resumeStatus === "studentLaunch");
+  const currentStudent = isStudentActive ? currentSceneStudents[playback.studentIndex] ?? null : null;
 
   const visibleStudents = useMemo(() => {
     if (playback.status === "finale") return scenes.flatMap(getSceneStudents);

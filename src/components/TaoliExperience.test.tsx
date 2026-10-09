@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import type { LocationPoint } from "../data/locations";
 import type { SiteConfig } from "../data/site-config";
@@ -86,5 +86,23 @@ describe("TaoliExperience", () => {
     expect(screen.getByRole("heading", { name: "四海芳华" })).toBeInTheDocument();
     expect(screen.getByText("师恩长存", { selector: ".opening-screen h2" })).toBeInTheDocument();
     expect(screen.queryByTestId("mentor-name")).not.toBeInTheDocument();
+  });
+
+  it("keeps the current student visible while playback is paused", () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <TaoliExperience students={students} locations={locations} config={config} amapKey="" ceremonyMode={false} />
+      );
+      fireEvent.click(screen.getByRole("button", { name: "开始桃李之旅" }));
+      act(() => vi.advanceTimersByTime(800));
+      expect(screen.getByText("尹春丽", { selector: ".current-person b" })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "暂停播放" }));
+      expect(screen.getByText("尹春丽", { selector: ".current-person b" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "继续播放" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

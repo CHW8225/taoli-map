@@ -81,12 +81,18 @@ export function parseStudentCsv(csv: string): RawStudentRow[] {
     throw new Error(`CSV表头必须为：${CSV_HEADER.join(",")}`);
   }
 
-  return lines.slice(1).map((line) => {
+  return lines.slice(1).map((line, index) => {
     const values = line.split(",");
     if (values.length !== CSV_HEADER.length) {
       throw new Error(`CSV记录列数错误：${line}`);
     }
-    return Object.fromEntries(CSV_HEADER.map((key, index) => [key, values[index].trim()])) as unknown as RawStudentRow;
+    const row = Object.fromEntries(
+      CSV_HEADER.map((key, columnIndex) => [key, values[columnIndex].trim()])
+    ) as Record<(typeof CSV_HEADER)[number], string>;
+    if (row.location_type !== "domestic" && row.location_type !== "overseas") {
+      throw new Error(`CSV第${index + 2}行 location_type 必须为 domestic 或 overseas`);
+    }
+    return row as unknown as RawStudentRow;
   });
 }
 

@@ -39,6 +39,15 @@ describe("parseStudentCsv", () => {
       }
     ]);
   });
+
+  it("rejects unsupported location types instead of treating them as domestic", () => {
+    const csv = [
+      "id,name,graduation_time,work_location,location_type,display_order",
+      "s001,测试学生,2020.06,陕西西安,unknown,1"
+    ].join("\n");
+
+    expect(() => parseStudentCsv(csv)).toThrow("location_type");
+  });
 });
 
 describe("parseGraduationYear", () => {
