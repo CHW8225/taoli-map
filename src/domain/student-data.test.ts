@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildYearScenes,
+  groupStudentsByLocation,
   normalizeLocation,
   normalizeStudents,
   parseStudentCsv,
@@ -142,5 +143,40 @@ describe("validateStudents", () => {
 
     expect(issues).toContainEqual({ id: "1", code: "missing-year", message: "陈永缺少毕业年份" });
     expect(issues).toContainEqual({ id: "3", code: "duplicate", message: "成宇峰存在重复记录" });
+  });
+});
+
+describe("groupStudentsByLocation", () => {
+  it("creates one destination group while preserving every student at that location", () => {
+    const students = normalizeStudents([
+      {
+        id: "1",
+        name: "学生甲",
+        graduation_time: "2016.06",
+        work_location: "山东烟台",
+        location_type: "domestic",
+        display_order: "1"
+      },
+      {
+        id: "2",
+        name: "学生乙",
+        graduation_time: "2017.06",
+        work_location: "山东烟台",
+        location_type: "domestic",
+        display_order: "2"
+      },
+      {
+        id: "3",
+        name: "海外学生",
+        graduation_time: "2018.06",
+        work_location: "德国海德堡",
+        location_type: "overseas",
+        display_order: "3"
+      }
+    ]);
+
+    expect(groupStudentsByLocation(students)).toEqual([
+      { locationKey: "山东烟台", students: [students[0], students[1]] }
+    ]);
   });
 });

@@ -29,6 +29,11 @@ export interface ValidationIssue {
   message: string;
 }
 
+export interface LocationStudentGroup {
+  locationKey: string;
+  students: StudentRecord[];
+}
+
 const CSV_HEADER = [
   "id",
   "name",
@@ -129,6 +134,22 @@ export function buildYearScenes(students: StudentRecord[]): YearScene[] {
     });
 
   return [...byYear.values()].sort((left, right) => left.year - right.year);
+}
+
+export function groupStudentsByLocation(students: StudentRecord[]): LocationStudentGroup[] {
+  const groups = new Map<string, StudentRecord[]>();
+
+  students.forEach((student) => {
+    if (student.locationType !== "domestic" || !student.locationKey) return;
+    const group = groups.get(student.locationKey) ?? [];
+    group.push(student);
+    groups.set(student.locationKey, group);
+  });
+
+  return [...groups.entries()].map(([locationKey, groupedStudents]) => ({
+    locationKey,
+    students: groupedStudents
+  }));
 }
 
 export function validateStudents(students: StudentRecord[]): ValidationIssue[] {

@@ -1,3 +1,5 @@
+import { SITE_CONFIG } from "./site-config";
+
 export interface LocationPoint {
   key: string;
   displayName: string;
@@ -9,11 +11,11 @@ export interface LocationPoint {
 
 export const ORIGIN: LocationPoint = {
   key: "陕西省咸阳市杨陵区",
-  displayName: "陕西杨凌",
+  displayName: SITE_CONFIG.originLabel,
   province: "陕西",
   city: "咸阳",
   county: "杨陵区",
-  coordinates: [108.072, 34.272]
+  coordinates: SITE_CONFIG.originCoordinates
 };
 
 function point(

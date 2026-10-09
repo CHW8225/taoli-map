@@ -78,4 +78,10 @@ describe("playbackReducer", () => {
     expect(second.sceneIndex).toBe(1);
     expect(stillSecond.sceneIndex).toBe(1);
   });
+
+  it("jumps directly to a selected year scene", () => {
+    const selected = playbackReducer(createInitialPlayback(), { type: "GO_TO_YEAR", scenes, sceneIndex: 1 });
+
+    expect(selected).toMatchObject({ status: "yearIntro", sceneIndex: 1, studentIndex: -1 });
+  });
 });

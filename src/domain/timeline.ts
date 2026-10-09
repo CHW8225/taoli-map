@@ -10,7 +10,8 @@ export interface PlaybackState {
 }
 
 export type PlaybackAction =
-  | { type: "START" | "TICK" | "PAUSE" | "RESUME" | "RESTART" | "NEXT_YEAR" | "PREVIOUS_YEAR"; scenes: YearScene[] };
+  | { type: "START" | "TICK" | "PAUSE" | "RESUME" | "RESTART" | "NEXT_YEAR" | "PREVIOUS_YEAR"; scenes: YearScene[] }
+  | { type: "GO_TO_YEAR"; scenes: YearScene[]; sceneIndex: number };
 
 export function createInitialPlayback(): PlaybackState {
   return { status: "idle", sceneIndex: 0, studentIndex: -1, resumeStatus: null };
@@ -45,6 +46,8 @@ export function playbackReducer(state: PlaybackState, action: PlaybackAction): P
       return yearState(Math.max(0, state.sceneIndex - 1));
     case "NEXT_YEAR":
       return yearState(Math.min(scenes.length - 1, state.sceneIndex + 1));
+    case "GO_TO_YEAR":
+      return yearState(Math.max(0, Math.min(scenes.length - 1, action.sceneIndex)));
     case "TICK": {
       if (state.status === "yearIntro") {
         return getSceneStudents(scenes[state.sceneIndex]).length > 0
